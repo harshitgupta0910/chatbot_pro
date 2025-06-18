@@ -1,140 +1,92 @@
-interface OpenRouterMessage {
-  role: 'user' | 'assistant' | 'system';
+interface GeminiMessage {
+  role: 'user' | 'model';
   content: string;
-}
-
-interface OpenRouterResponse {
-  choices: Array<{
-    message: {
-      content: string;
-      role: string;
-    };
-    finish_reason: string;
-  }>;
-  error?: {
-    message: string;
-    type: string;
-    code: string;
-  };
 }
 
 class ChatService {
   private apiKey: string;
-  private modelName: string;
-  private conversationHistory: Map<string, OpenRouterMessage[]> = new Map();
+  private conversationHistory: Map<string, GeminiMessage[]> = new Map();
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || '';
-    this.modelName = import.meta.env.VITE_MODEL_NAME || 'distilGPT2';
+    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
     if (!this.apiKey) {
-      console.warn('OpenRouter API key not found in environment variables');
+      console.warn('❌ Gemini API key not found in environment variables');
     }
   }
 
-  private async callOpenRouterAPI(messages: OpenRouterMessage[]): Promise<string> {
+  private async callGeminiAPI(messages: GeminiMessage[]): Promise<string> {
     if (!this.apiKey) {
-      throw new Error('OpenRouter API key not configured');
+      throw new Error('Gemini API key not configured');
     }
 
+    const promptContent = messages.map(msg => ({
+      role: msg.role,
+      parts: [{ text: msg.content }]
+    }));
+
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'ChatBot Pro',
-        },
-        body: JSON.stringify({ model: this.modelName, messages, temperature: 0.7, max_tokens: 1000 })
-      });
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ contents: promptContent })
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('OpenRouter API Error!', response.status, errorText);
-        
-        if (response.status === 401) {
-          throw new Error('Invalid API key. Please check your OpenRouter API key');
-        } else if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please try again later');
-        } else if (response.status === 402) {
-          throw new Error('Insufficient credits. Please check your OpenRouter account balance');
-        } else if (response.status === 400) {
-          throw new Error('Invalid request. The model might not support this format');
-        } else {
-          throw new Error(`API request failed with status ${response.status}`);
-        }
+        console.error('Gemini API Error:', response.status, errorText);
+        throw new Error(`Gemini API error: ${errorText}`);
       }
 
-      const data: OpenRouterResponse = await response.json();
+      const data = await response.json();
+      const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      if (data.error) {
-        throw new Error(`API Error: ${data.error.message}`);
+      if (!content) {
+        throw new Error('No response from Gemini');
       }
-      if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-        return data.choices[0].message.content.trim();
-      }
-      throw new Error('No response generated from the model');
+
+      return content.trim();
     } catch (error) {
-      console.error('Error calling OpenRouter API!', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to get a response from the AI model');
+      console.error('❌ Error calling Gemini API:', error);
+      throw error instanceof Error ? error : new Error('Unknown error from Gemini');
     }
   }
 
-  private getConversationHistory(chatId: string): OpenRouterMessage[] {
-    return this.conversationHistory.get(chatId) || []; 
+  private getConversationHistory(chatId: string): GeminiMessage[] {
+    return this.conversationHistory.get(chatId) || [];
   }
 
-  private updateConversationHistory(chatId: string, messages: OpenRouterMessage[]): void {
+  private updateConversationHistory(chatId: string, messages: GeminiMessage[]): void {
     const maxMessages = 20;
-    const trimmedMessages = messages.slice(-maxMessages);
-    this.conversationHistory.set(chatId, trimmedMessages);
+    this.conversationHistory.set(chatId, messages.slice(-maxMessages));
   }
 
   async sendMessage(content: string, chatId: string = 'default'): Promise<string> {
     try {
-      // Get conversation history
       const history = this.getConversationHistory(chatId);
-      const messages: OpenRouterMessage[] = [];
+      const messages: GeminiMessage[] = [...history, { role: 'user', content }];
 
-      if (history.length === 0) {
-        messages.push({ role: 'system', content: 'You are a helpful, knowledgeable, and friendly AI assistant. Provide clear, accurate, and helpful responses to user questions. Be conversational but professional.' });
-      }
-      messages.push(...history);
-      messages.push({ role: 'user', content });
+      const response = await this.callGeminiAPI(messages);
 
-      // Call the API
-      const response = await this.callOpenRouterAPI(messages);
-
-      // Update conversation history
-      const newHistory = [
+      const updatedHistory = [
         ...history,
         { role: 'user', content },
-        { role: 'assistant', content: response }
+        { role: 'model', content: response }
       ];
-
-      this.updateConversationHistory(chatId, newHistory);
+      this.updateConversationHistory(chatId, updatedHistory);
 
       return response;
     } catch (error) {
-      console.error('Error in sendMessage!', error);
+      console.error('❌ Error in sendMessage:', error);
       if (error instanceof Error) {
-        if (error.message.includes('API key')) {
-          return 'Authentication error: Please check your API key configuration';
-        } else if (error.message.includes('rate limit')) {
-          return "I'm receiving too many requests. Please try again in a few moments.";
-        } else if (error.message.includes('credits')) {
-          return 'API credits have been exhausted. Please check your account balance';
-        } else if (error.message.includes('Invalid request')) {
-          return 'There was an issue with the request format. Please try rephrasing your message';
-        } else {
-          return `I apologize, but I encountered an error: ${error.message}. Please try again.`;
-        }
+        return `⚠️ Error: ${error.message}`;
       }
-      return "I apologize, but I'm having trouble responding right now. Please try again.";
+      return '⚠️ Unexpected error occurred.';
     }
   }
 
@@ -148,3 +100,158 @@ class ChatService {
 }
 
 export const chatService = new ChatService();
+
+
+
+
+// interface OpenRouterMessage {
+//   role: 'user' | 'assistant' | 'system';
+//   content: string;
+// }
+
+// interface OpenRouterResponse {
+//   choices: Array<{
+//     message: {
+//       content: string;
+//       role: string;
+//     };
+//     finish_reason: string;
+//   }>;
+//   error?: {
+//     message: string;
+//     type: string;
+//     code: string;
+//   };
+// }
+
+// class ChatService {
+//   private apiKey: string;
+//   private modelName: string;
+//   private conversationHistory: Map<string, OpenRouterMessage[]> = new Map();
+
+//   constructor() {
+//     this.apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || '';
+//     this.modelName = import.meta.env.VITE_MODEL_NAME || 'distilGPT2';
+
+//     if (!this.apiKey) {
+//       console.warn('OpenRouter API key not found in environment variables');
+//     }
+//   }
+
+//   private async callOpenRouterAPI(messages: OpenRouterMessage[]): Promise<string> {
+//     if (!this.apiKey) {
+//       throw new Error('OpenRouter API key not configured');
+//     }
+
+//     try {
+//       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+//         method: 'POST',
+//         headers: {
+//           Authorization: `Bearer ${this.apiKey}`,
+//           'Content-Type': 'application/json',
+//           'HTTP-Referer': window.location.origin,
+//           'X-Title': 'ChatBot Pro',
+//         },
+//         body: JSON.stringify({ model: this.modelName, messages, temperature: 0.7, max_tokens: 1000 })
+//       });
+
+//       if (!response.ok) {
+//         const errorText = await response.text();
+//         console.error('OpenRouter API Error!', response.status, errorText);
+        
+//         if (response.status === 401) {
+//           throw new Error('Invalid API key. Please check your OpenRouter API key');
+//         } else if (response.status === 429) {
+//           throw new Error('Rate limit exceeded. Please try again later');
+//         } else if (response.status === 402) {
+//           throw new Error('Insufficient credits. Please check your OpenRouter account balance');
+//         } else if (response.status === 400) {
+//           throw new Error('Invalid request. The model might not support this format');
+//         } else {
+//           throw new Error(`API request failed with status ${response.status}`);
+//         }
+//       }
+
+//       const data: OpenRouterResponse = await response.json();
+
+//       if (data.error) {
+//         throw new Error(`API Error: ${data.error.message}`);
+//       }
+//       if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+//         return data.choices[0].message.content.trim();
+//       }
+//       throw new Error('No response generated from the model');
+//     } catch (error) {
+//       console.error('Error calling OpenRouter API!', error);
+//       if (error instanceof Error) {
+//         throw error;
+//       }
+//       throw new Error('Failed to get a response from the AI model');
+//     }
+//   }
+
+//   private getConversationHistory(chatId: string): OpenRouterMessage[] {
+//     return this.conversationHistory.get(chatId) || []; 
+//   }
+
+//   private updateConversationHistory(chatId: string, messages: OpenRouterMessage[]): void {
+//     const maxMessages = 20;
+//     const trimmedMessages = messages.slice(-maxMessages);
+//     this.conversationHistory.set(chatId, trimmedMessages);
+//   }
+
+//   async sendMessage(content: string, chatId: string = 'default'): Promise<string> {
+//     try {
+//       // Get conversation history
+//       const history = this.getConversationHistory(chatId);
+//       const messages: OpenRouterMessage[] = [];
+
+//       if (history.length === 0) {
+//         messages.push({ role: 'system', content: 'You are a helpful, knowledgeable, and friendly AI assistant. Provide clear, accurate, and helpful responses to user questions. Be conversational but professional.' });
+//       }
+//       messages.push(...history);
+//       messages.push({ role: 'user', content });
+
+//       // Call the API
+//       const response = await this.callOpenRouterAPI(messages);
+
+//       // Update conversation history
+//       const newHistory = [
+//         ...history,
+//         { role: 'user', content },
+//         { role: 'assistant', content: response }
+//       ];
+
+//       this.updateConversationHistory(chatId, newHistory);
+
+//       return response;
+//     } catch (error) {
+//       console.error('Error in sendMessage!', error);
+//       if (error instanceof Error) {
+//         if (error.message.includes('API key')) {
+//           return 'Authentication error: Please check your API key configuration';
+//         } else if (error.message.includes('rate limit')) {
+//           return "I'm receiving too many requests. Please try again in a few moments.";
+//         } else if (error.message.includes('credits')) {
+//           return 'API credits have been exhausted. Please check your account balance';
+//         } else if (error.message.includes('Invalid request')) {
+//           return 'There was an issue with the request format. Please try rephrasing your message';
+//         } else {
+//           return `I apologize, but I encountered an error: ${error.message}. Please try again.`;
+//         }
+//       }
+//       return "I apologize, but I'm having trouble responding right now. Please try again.";
+//     }
+//   }
+
+//   clearConversationHistory(chatId: string): void {
+//     this.conversationHistory.delete(chatId);
+//   }
+
+//   clearAllConversations(): void {
+//     this.conversationHistory.clear();
+//   }
+// }
+
+// export const chatService = new ChatService();
+

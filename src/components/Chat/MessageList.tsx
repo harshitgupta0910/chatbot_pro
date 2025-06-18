@@ -22,10 +22,10 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
             <Zap className="w-6 h-6 absolute -top-1 -right-1 text-blue-500 animate-pulse" />
           </div>
           <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Start a conversation with DeepSeek R1
+            Start a conversation with ChatBot Pro
           </h3>
           <p className="text-gray-500 dark:text-gray-400 mb-4">
-            Ask me anything! I'm powered by DeepSeek's advanced reasoning model via OpenRouter.
+            Ask me anything! I'm powered by Gemini's advanced reasoning model.
           </p>
           <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
             <p className="mb-2 font-medium">💡 I excel at:</p>
@@ -72,7 +72,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
-                <span className="text-xs text-gray-500">DeepSeek is thinking...</span>
+                <span className="text-xs text-gray-500">Gemini is thinking...</span>
               </div>
             ) : (
               <>
@@ -92,7 +92,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
                 {message.isBot && !message.content.includes('error') && !message.content.includes('Error') && !message.content.includes('apologize') && (
                   <div className="flex items-center mt-2 text-xs text-blue-600 dark:text-blue-400">
                     <Zap className="w-3 h-3 mr-1" />
-                    <span>DeepSeek R1</span>
+                    <span>Harshit</span>
                   </div>
                 )}
               </>
