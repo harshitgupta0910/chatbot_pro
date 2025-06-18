@@ -144,7 +144,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, isLoading })
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message... (Press ↑ for history)"
-            className="w-full px-4 py-3 pr-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none max-h-30"
+            className="w-full px-4 py-3 pr-12 border border-gray-200 dark:border-gray-600 rounded-xl text-blue-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none max-h-30"
             rows={1}
             disabled={isLoading}
           />
