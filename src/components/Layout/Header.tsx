@@ -18,7 +18,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
     <div className="flex items-center space-x-4">
       <button
         onClick={onToggleSidebar}
-        className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-orange-600 dark:text-orange-400 transition-colors"
       >
         <MessageSquare className="w-5 h-5" />
       </button>
@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
     <div className="flex items-center space-x-2">
       <button
         onClick={toggleTheme}
-        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-pink-600 dark:text-pink-400 transition-colors"
         title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
