@@ -22,22 +22,25 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       >
         <MessageSquare className="w-5 h-5" />
       </button>
+
       <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
+  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
           <MessageSquare className="w-4 h-4 text-white" />
         </div>
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
-          ChatBot Pro
-        </h1>
-      </div>
+  <span className="text-xl font-extrabold bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500 bg-clip-text text-transparent animate-text">
+    Harshit's bot
+  </span>
+</div>
     </div>
 
+    {/* Center - Placeholder for name */}
+    
     {/* Center - Name */}
-   <div className="absolute left-1/2 transform -translate-x-1/2">
+   {/* <div className="absolute left-1/2 transform -translate-x-1/2">
   <span className="text-xl font-extrabold bg-gradient-to-r from-indigo-500 via-pink-500 to-orange-500 bg-clip-text text-transparent animate-text">
    Harshit's bot
   </span>
-</div>
+</div> */}
 
 
     {/* Right - Theme toggle and user */}

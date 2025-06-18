@@ -31,9 +31,21 @@ export default {
         },
       },
       animation: {
+        text: 'text 5s ease infinite',
         'bounce-slow': 'bounce 2s infinite',
         'pulse-slow': 'pulse 3s infinite',
+      }, keyframes: {
+      text: {
+        '0%, 100%': {
+          'background-size': '200% 200%',
+          'background-position': 'left center',
+        },
+        '50%': {
+          'background-size': '200% 200%',
+          'background-position': 'right center',
+        },
       },
+    },
       backdropBlur: {
         xs: '2px',
       },
